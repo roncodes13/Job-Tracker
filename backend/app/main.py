@@ -14,14 +14,18 @@ from app.routers.router import api_router
 configure_logging()
 logger = logging.getLogger("jobtrack")
 
+local_frontend_origin_regex = (
+    r"^https?://(?:localhost|127\.0\.0\.1)(?::\d+)?$"
+    if settings.environment == "development"
+    else None
+)
+
 api_app = FastAPI(title=settings.app_name)
 
 api_app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=settings.frontend_origins,
+    allow_origin_regex=local_frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,6 +117,7 @@ async def handle_unexpected_exception(
 app = CORSMiddleware(
     app=api_app,
     allow_origins=settings.frontend_origins,
+    allow_origin_regex=local_frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

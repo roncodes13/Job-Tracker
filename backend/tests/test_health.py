@@ -36,6 +36,32 @@ def test_configured_frontend_origin_is_allowed(client: TestClient) -> None:
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
 
 
+def test_vite_fallback_port_is_allowed_in_development(client: TestClient) -> None:
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": "http://localhost:5174",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5174"
+
+
+def test_unconfigured_remote_frontend_origin_is_rejected(client: TestClient) -> None:
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_unhandled_server_error_includes_cors_headers() -> None:
     def fail_database_dependency():
         raise RuntimeError("test-only failure")
