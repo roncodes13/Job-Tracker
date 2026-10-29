@@ -176,9 +176,10 @@ do not disable TLS certificate or hostname verification. Never put database
 credentials or JWT secrets in the frontend or source control.
 
 The frontend reads `VITE_API_BASE_URL` from `frontend\.env`. For local
-development the example is `http://127.0.0.1:8000`. `VITE_` variables are
-compiled into browser assets and are public; use only non-secret configuration
-such as the API origin.
+development the example is `http://127.0.0.1:8000`. Production builds without
+this variable use same-origin `/api` routes. `VITE_` variables are compiled
+into browser assets and are public; use only non-secret configuration such as
+the API origin.
 
 ## Database migrations
 
@@ -278,36 +279,37 @@ npm test
 The frontend tests use Node's built-in test runner and validate API request and
 error-handling behavior.
 
-For a production build, set a real deployed HTTPS API origin through the
-environment (do not use the example host):
+For a standalone production frontend, optionally set its deployed HTTPS API
+origin through the environment:
 
 ```powershell
-$env:VITE_API_BASE_URL = 'https://api.example.com' # Replace with your deployed API origin.
+$env:VITE_API_BASE_URL = 'https://api.example.com' # Replace with your API origin.
 npm run build
 Remove-Item Env:VITE_API_BASE_URL
 ```
 
-The build fails if `VITE_API_BASE_URL` is missing or is not an HTTPS origin.
-Production assets are written to `frontend\dist\`.
+When deploying this repository as a Vercel multi-service project,
+`VITE_API_BASE_URL` can remain unset: the frontend calls `/api` on the same
+domain, and the root `vercel.json` routes those requests to the backend.
+If set, the variable must be an HTTPS origin without a path. Production assets
+are written to `frontend\dist\`.
 
 ## Deployment
 
-Deployment is not configured automatically by this repository. A common
-arrangement is a FastAPI service on Render, managed PostgreSQL with verified
-TLS, and the static Vite frontend on Vercel.
-
-- Set the backend root directory to `backend`, install its package with
-  `pip install .`, and start with
-  `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-- Configure backend production variables including `ENVIRONMENT`,
-  `DATABASE_URL`, `JWT_SECRET_KEY`, and `FRONTEND_ORIGINS`; run reviewed
-  Alembic upgrades explicitly before relying on database-backed routes.
-- Set the Vercel root directory to `frontend`, build with `npm run build`, and
-  use `dist` as output. Configure `VITE_API_BASE_URL` to the HTTPS API origin.
-- `frontend\vercel.json` rewrites SPA routes to `index.html` so direct links
-  and browser refresh work.
-- CORS must allow the exact deployed frontend origin. `FRONTEND_ORIGINS` does
-  not allow wildcard origins.
+- The root `vercel.json` configures two services: `backend` (FastAPI, rooted
+  at `backend`) and `frontend` (Vite, rooted at `frontend`). Deploy the
+  repository root as the Vercel project so both services are discovered.
+- The public rewrites route `/api/*` to the backend and all other paths to the
+  frontend. The frontend calls the API through same-origin `/api` paths; no
+  service binding is needed because the browser uses the public API route and
+  the backend does not call another Vercel service.
+- Configure the backend production variables `ENVIRONMENT`, `DATABASE_URL`,
+  `JWT_SECRET_KEY`, and `FRONTEND_ORIGINS`. Since browser API calls are
+  same-origin, include the deployed frontend origin in `FRONTEND_ORIGINS` only
+  if it is needed by other clients. Run reviewed Alembic upgrades explicitly
+  before relying on database-backed routes.
+- The backend is reachable publicly only through the `/api/*` rewrite. The
+  frontend service's `vercel.json` rewrites SPA routes to `index.html`.
 
 Free hosting tiers may sleep, have usage quotas, or provide limited retention
 and backup guarantees. Review provider terms before using them for persistent
