@@ -8,10 +8,7 @@ JobTrack is a full-stack job search tracker built as a Python and React
 portfolio project. It helps a signed-in user organize job applications,
 schedule interviews, and review application activity in a dashboard.
 
-> **Demo:** [Live application](https://your-live-demo-url.example) ·
-> **Source:** [GitHub repository](https://github.com/your-username/your-repository)
->
-> Replace these placeholders with the actual public URLs when available.
+> **Demo:** [Live application](https://job-tracker-iota-flax.vercel.app/) ·
 
 ## Features
 
